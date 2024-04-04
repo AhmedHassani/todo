@@ -3,6 +3,8 @@ part 'model.g.dart';
 
 @HiveType(typeId: 0)
 class Todo {
+
+
   @HiveField(0)
   final String title;
 
@@ -21,5 +23,28 @@ class Todo {
   @HiveField(5)
   final String type;
 
-  const Todo(this.title, this.note, this.date, this.time, this.isDone, this.type);
+  @HiveField(6)
+  final String uuid;
+
+  const Todo(this.title, this.note, this.date, this.time, this.isDone, this.type,this.uuid);
+
+
+
+
+  @override
+  String toString() {
+    return toJson().toString();
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'uuid':uuid,
+      'title': title,
+      'note': note,
+      'date': date,
+      'time': time,
+      'isDone': isDone,
+      'type': type,
+    };
+  }
 }

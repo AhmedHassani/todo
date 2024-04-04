@@ -1,221 +1,175 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:todo/info.dart';
 import 'package:todo/todo_list.dart';
+import 'core/controllers/db_controller.dart';
+import 'core/utils/hlaf-circle.dart';
 import 'core/values/colors.dart';
-import 'model.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
-
-class HomePage extends StatefulWidget {
-  HomePage({Key? key}) : super(key: key);
-
-  @override
-  _HomePageState createState() => _HomePageState();
-}
-
-
-
-class _HomePageState extends State<HomePage> {
-  late Box<Todo> _todoBox;
-  int all  = 0;
-  List<Todo> todos  = [];
-  Map<String, int> typeCount = {};
-
-
-  @override
-  void initState() {
-    typeCount["privacy"] =0;
-    typeCount["progress"] =0;
-    typeCount["graduates"] =0;
-    typeCount["cart"] =0;
-    typeCount["heartbeat"] =0;
-    _openBox();
-    super.initState();
-  }
-
-  Future<void> _openBox() async {
-    _todoBox = await Hive.openBox<Todo>('all');
-    todos = _todoBox.values.toList();
-    for(Todo todo in todos){
-      typeCount[todo.type] = (typeCount[todo.type] ?? 0) + 1;
-    }
-    all = _todoBox.values.length;
-    setState(() {});
-  }
-
+class HomePage extends GetView<DBController> {
   @override
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Colors.white70,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(
-              Icons.notifications_active_outlined,
-              size: 35,
-              color: Color.fromRGBO(189, 202, 216,1),
+      child: Obx(() => Scaffold(
+            backgroundColor: Colors.white,
+            appBar: AppBar(
+              actions: [
+                IconButton(
+                  icon: const Icon(
+                      Icons.color_lens,
+                      size: 27,
+                      color: Colors.white,
+                  ),
+                  onPressed: () {
+                    _openColorPicker(context);
+                  },
+                ),
+              ],
+              leading: IconButton(
+                icon: const Icon(
+                  Icons.info,
+                  size: 27,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  Get.to(() => InfoPage());
+                },
+              ),
+              backgroundColor: controller.appBarColor.value,
             ),
-            onPressed: () {
-            },
+            body: Container(
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: ClipPath(
+                      clipper: HalfTabletClipper(),
+                      child: Container(
+                        width: MediaQuery.of(context).size.width,
+                        height: 130, // Adjust height as needed
+                        color: controller.appBarColor.value, // Change color and opacity as needed
+                      ),
+                    ),
+                  ),
+                  ListView(
+                    children: [
+                      SizedBox(height: 10),
+                      ListTile(
+                        title: const Text("مرحبا مجددا"),
+                        subtitle: Text(
+                            "لديك ${controller.all.value ?? 0} مهام غير مكتملة"),
+                        trailing: Image.asset("images/woman.png"),
+                      ),
+                      _buildGestureDetector("all", "كل المهام", "all.png",
+                          controller.all.value ?? 0),
+                      _buildGestureDetector("privacy", "شخصي", "privacy.png",
+                          controller.typeCount["privacy"] ?? 0),
+                      _buildGestureDetector("progress", "عمل", "progress.png",
+                          controller.typeCount["progress"] ?? 0),
+                      _buildGestureDetector("graduates", "دراسة", "graduates.png",
+                          controller.typeCount["graduates"] ?? 0),
+                      _buildGestureDetector("cart", "تسوق", "cart.png",
+                          controller.typeCount["cart"] ?? 0),
+                      _buildGestureDetector("heartbeat", "صحة", "heartbeat.png",
+                          controller.typeCount["heartbeat"] ?? 0),
+                    ],
+                  ),
+
+                ],
+              ),
+            )
+        ,
+          )),
+    );
+  }
+
+  Widget _buildGestureDetector(
+      String type, String title, String leadingImage, int count) {
+    return GestureDetector(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: Colors.black12,
           ),
-          backgroundColor: yellow,
+          borderRadius: BorderRadius.all(Radius.circular(8)),
         ),
-        body: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage("images/back1.png"),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: ListView(
-            children: [
-              SizedBox(
-                height: 10,
-              ),
-              ListTile(
-                title: const Text("مرحبا مجددا"),
-                subtitle: Text("لديك"+" ${all} "+"مهام غير مكتمله"),
-                trailing: Image.asset("images/woman.png"),
-              ),
-              GestureDetector(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: Colors.black12,
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                  margin: EdgeInsets.all(12),
-                  padding: EdgeInsets.all(8),
-                  child: ListTile(
-                    title: Text("كل المهام"),
-                    subtitle: Text(" عدد المهام هو"+" : "+"${all}"),
-                    leading: Image.asset("images/all.png"),
-                    trailing: Icon(Icons.more_vert),
-                  ),
-                ),
-                onTap: () {
-                  Get.to(() => TodoView("all"));
-                },
-              ),
-              GestureDetector(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: Colors.black12,
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                  margin: EdgeInsets.all(12),
-                  padding: EdgeInsets.all(8),
-                  child: ListTile(
-                    title: Text("شخصي"),
-                    subtitle: Text(" عدد المهام هو"+" : "+"${typeCount["privacy"]}"),
-                    leading: Image.asset("images/privacy.png"),
-                    trailing: Icon(Icons.more_vert),
-                  ),
-                ),
-                onTap: () {
-                  Get.to(() => TodoView("privacy"));
-                },
-              ),
-              GestureDetector(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: Colors.black12,
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                  margin: EdgeInsets.all(12),
-                  padding: EdgeInsets.all(8),
-                  child: ListTile(
-                    title: Text("عمل"),
-                    subtitle: Text(" عدد المهام هو"+" : "+"${typeCount["progress"]}"),
-                    leading: Image.asset("images/progress.png"),
-                    trailing: Icon(Icons.more_vert),
-                  ),
-                ),
-                onTap: () {
-                  Get.to(() => TodoView("progress"));
-                },
-              ),
-              GestureDetector(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: Colors.black12,
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                  margin: EdgeInsets.all(12),
-                  padding: EdgeInsets.all(8),
-                  child: ListTile(
-                    title: Text("دراسه"),
-                    subtitle: Text(" عدد المهام هو"+" : "+"${typeCount["graduates"]}"),
-                    leading: Image.asset("images/graduates.png"),
-                    trailing: Icon(Icons.more_vert),
-                  ),
-                ),
-                onTap: () {
-                  Get.to(() => TodoView("graduates"));
-                },
-              ),
-              GestureDetector(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: Colors.black12,
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                  margin: EdgeInsets.all(12),
-                  padding: EdgeInsets.all(8),
-                  child: ListTile(
-                    title: Text("تسوق"),
-                    subtitle: Text(" عدد المهام هو"+" : "+"${typeCount["cart"]}"),
-                    leading: Image.asset("images/cart.png"),
-                    trailing: Icon(Icons.more_vert),
-                  ),
-                ),
-                onTap: () {
-                  Get.to(() => TodoView("cart"));
-                },
-              ),
-              GestureDetector(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: Colors.black12,
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                  margin: EdgeInsets.all(12),
-                  padding: EdgeInsets.all(8),
-                  child: ListTile(
-                    title: Text("صحه"),
-                    subtitle: Text(" عدد المهام هو"+" : "+"${typeCount["heartbeat"]}"),
-                    leading: Image.asset("images/heartbeat.png"),
-                    trailing: Icon(Icons.more_vert),
-                  ),
-                ),
-                onTap: () {
-                  Get.to(() => TodoView("heartbeat"));
-                },
-              ),
-            ],
-          ),
+        margin: EdgeInsets.all(12),
+        padding: EdgeInsets.all(8),
+        child: ListTile(
+          title: Text(title),
+          subtitle: Text("عدد المهام هو: $count"),
+          leading: Image.asset("images/$leadingImage"),
         ),
       ),
+      onTap: () async {
+        controller.type.value = type;
+        controller.getByType();
+        Get.to(() => TodoView());
+      },
+    );
+  }
+
+  void _openColorPicker(BuildContext context) {
+    Color selectedColor = controller.appBarColor.value; // Get current color
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('حدد لون الشريط العلوي'),
+          content: SingleChildScrollView(
+            child: ColorPicker(
+              pickerColor: selectedColor,
+              onColorChanged: (Color color) {
+                selectedColor = color;
+              },
+              showLabel: true,
+              pickerAreaHeightPercent: 0.8,
+            ),
+          ),
+          actions: <Widget>[
+            ElevatedButton(
+              onPressed: () {
+                controller.updateAppBarColor(
+                    selectedColor); // Update app bar color using controller
+                Get.back();
+              },
+              child: const Text('حفظ'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
+
+/*
+ListView(
+                  children: [
+                    SizedBox(height: 10),
+                    ListTile(
+                      title: const Text("مرحبا مجددا"),
+                      subtitle: Text(
+                          "لديك ${controller.all.value ?? 0} مهام غير مكتملة"),
+                      trailing: Image.asset("images/woman.png"),
+                    ),
+                    _buildGestureDetector("all", "كل المهام", "all.png",
+                        controller.all.value ?? 0),
+                    _buildGestureDetector("privacy", "شخصي", "privacy.png",
+                        controller.typeCount["privacy"] ?? 0),
+                    _buildGestureDetector("progress", "عمل", "progress.png",
+                        controller.typeCount["progress"] ?? 0),
+                    _buildGestureDetector("graduates", "دراسة", "graduates.png",
+                        controller.typeCount["graduates"] ?? 0),
+                    _buildGestureDetector("cart", "تسوق", "cart.png",
+                        controller.typeCount["cart"] ?? 0),
+                    _buildGestureDetector("heartbeat", "صحة", "heartbeat.png",
+                        controller.typeCount["heartbeat"] ?? 0),
+                  ],
+                )
+ */

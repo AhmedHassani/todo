@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
+import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:todo/core/utils/notification_service.dart';
+import 'package:uuid/uuid.dart';
+import 'core/controllers/db_controller.dart';
 import 'core/values/colors.dart';
 import 'model.dart';
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart' as picker;
@@ -14,7 +17,7 @@ class AddAndEditTask extends StatefulWidget {
 
   AddAndEditTask(
       {required this.type,
-      required this.action,
+      required  this.action,
       this.todo,
       this.index = 0,
       Key? key})
@@ -31,12 +34,18 @@ class _AddTaskState extends State<AddAndEditTask> {
   late String startDate;
   late String endDate;
   NotificationService serviceNotification = NotificationService();
+  final DBController controller = Get.put(DBController());
+  var uuid = Uuid();
+  late bool isDone =false;
+
+
 
   @override
   void initState() {
     if (widget.action == 'edit') {
       _titleController.text = widget.todo!.title;
       _noteController.text = widget.todo!.note;
+       isDone = widget.todo!.isDone;
     }
     String date = "${DateTime.now().year}-${DateTime.now().month}-${DateTime.now().day}"
         " ${DateTime.now().hour}:${DateTime.now().minute}";
@@ -85,17 +94,17 @@ class _AddTaskState extends State<AddAndEditTask> {
                     _noteController.text,
                     startDate,
                     endDate,
-                    false,
+                    isDone,
                     widget.type,
+                    uuid.v4()
                   );
                   if (widget.action == 'edit') {
-                    box.putAt(widget.index, todo);
-                    print(startDate);
+                    controller.editTodo(widget.index, todo);
                     serviceNotification.showNotification(startDate,"${todo.title}"+"تذكير انجاز مهمه","ابدأ الآن وقم بالخطوات الأولى نحو تحقيق أهدافك");
                     serviceNotification.showNotification(endDate,"${todo.title}"+"تذكير انجاز مهمه","انجز المهمه قبل انتهاء الوقت المحدد");
                   }
                   if (widget.action == 'add') {
-                    box.add(todo);
+                    controller.addTodo(todo);
                     serviceNotification.showNotification(startDate,"${todo.title}"+"تذكير انجاز مهمه","ابدأ الآن وقم بالخطوات الأولى نحو تحقيق أهدافك");
                     serviceNotification.showNotification(endDate,"${todo.title}"+"تذكير انجاز مهمه","انجز المهمه قبل انتهاء الوقت المحدد");
                   }
@@ -106,7 +115,7 @@ class _AddTaskState extends State<AddAndEditTask> {
             )
           ],
           title: Text("تعديل المهام"),
-          backgroundColor: yellow,
+          backgroundColor: Colors.white,
         ),
         body: Padding(
           padding: EdgeInsets.all(16.0),
@@ -198,7 +207,24 @@ class _AddTaskState extends State<AddAndEditTask> {
                         child: Text('End Time'),
                       ),
                     ],
-                  )
+                  ),
+                  SizedBox(height: 5,),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                    const Text("تم اكمل المهمه"),
+                    Checkbox(
+                      value: isDone,
+                      checkColor: Colors.white,
+                      activeColor: Colors.green,
+                      visualDensity: VisualDensity.compact,
+                      onChanged: (newValue) {
+                        setState(() {
+                          isDone = newValue!;
+                        });
+                      },
+                    )
+                  ],)
                 ],
               ),
             ),

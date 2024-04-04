@@ -1,124 +1,148 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
+import 'package:todo/model.dart';
 import 'package:todo/todo_view.dart';
-
+import 'core/controllers/db_controller.dart';
+import 'core/utils/custom_list_tile.dart';
 import 'core/values/colors.dart';
-import 'model.dart';
 
-class TodoView extends StatefulWidget {
-  String s;
-
-  TodoView(this.s, {Key? key}) : super(key: key);
-
-  @override
-  State<TodoView> createState() => _TodoViewState();
-}
-
-class _TodoViewState extends State<TodoView> {
-  late Box<Todo> _todoBox;
-  var todos  = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _openBox();
-  }
-
-  Future<void> _openBox() async {
-    _todoBox = await Hive.openBox<Todo>('all');
-    todos = _todoBox.values.toList();
-    if(widget.s != 'all') {
-      todos = todos.where((todo) => widget.s == todo.type).toList();
-    }
-    setState(() {});
-  }
+class TodoView extends GetView<DBController> {
+  TodoView({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
         textDirection: TextDirection.rtl,
-        child: Scaffold(
+        child: Obx(()=>Scaffold(
           appBar: AppBar(
+
             actions: [
-              widget.s == "all" ?
-              Container() : IconButton(
-                icon: Icon(
+              controller.type.value == "all"
+                  ? Container()
+                  : IconButton(
+                icon: const Icon(
                   Icons.add,
                   color: Colors.black,
                 ),
                 onPressed: () {
-                   Get.to(() => AddAndEditTask(type: widget.s, action: "add",))!.then((value){
-                     setState(() {
-                       _openBox();
-                     });
-                   });
+                  Get.to(() => AddAndEditTask(
+                    type: controller.type.value,
+                    action: "add",
+                  ));
                 },
               )
             ],
-            title: Text("المهام"),
-            backgroundColor: yellow,
+            title: const Text("المهام"),
+            backgroundColor: controller.appBarColor.value,
           ),
-          body:_buildTodoList(),
-        ));
+          body: GetBuilder(
+            builder: (DBController controller) {
+              if (controller.todoList.isEmpty) {
+                return const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Center(
+                      child: Text("لا يوجد مهام"),
+                    )
+                  ],
+                );
+              } else {
+                return _buildTodoList();
+              }
+            },
+          ),
+        )));
   }
 
   Widget _buildTodoList() {
+    List<Todo> todos = controller.todoList;
     return ListView.separated(
       itemCount: todos.length,
       itemBuilder: (context, index) {
-         return ListTile(
-            onTap: () {
-              Get.to(() =>
-                  AddAndEditTask(
-                    type: widget.s, action: "edit", todo: todos[index], index: index,)
-              )!.then((value) {
-                setState(() {
-                  _openBox();
-                });
-              });
-            },
-            title: Text(
-              todos[index].title,
-              textAlign: TextAlign.right,
-              textDirection: TextDirection.rtl,
-            ),
-            subtitle: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "${todos[index].note}",
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  textDirection: TextDirection.rtl,
-
-                ),
-                Text(
-                  "${todos[index].date} - ${todos[index].time}",
-                  textAlign: TextAlign.right,
-                  textDirection: TextDirection.rtl,
-                )
-              ],
-            ),
-            trailing: IconButton(
-              icon: Icon(
-                Icons.delete,
-                color: Colors.red,
-              ),
-              onPressed: () {
-                setState(() {
-                  _todoBox.deleteAt(index);
-                   _openBox();
-                });
-              },
-            ),
-          );
-      }, separatorBuilder: (BuildContext context, int index) {
-      return Divider();
-    },
+        return CustomTaskTile(
+          title:todos[index].title,
+          subtitle:todos[index].note,
+          startDate: todos[index].date,
+          isDone: todos[index].isDone,
+          endDate: todos[index].time,
+          onDelete: (){
+            controller.deleteById(todos[index].uuid);
+          },
+          onTab: (){
+            Get.to(() => AddAndEditTask(
+              type: controller.type.value,
+              action: "edit",
+              todo: todos[index],
+              index: index,
+            ));
+          },
+        );
+      },
+      separatorBuilder: (BuildContext context, int index) {
+        return const Divider();
+      },
     );
   }
-
-
 }
+
+/*
+  final String title;
+  final String subtitle;
+  final DateTime startDate;
+  final DateTime endDate;
+  final bool isDone;
+  final Function(bool?)? onDoneChanged;
+  final Function()? onDelete;
+ */
+
+
+/*
+
+ListTile(
+          onTap: () {
+            Get.to(() => AddAndEditTask(
+                  type: controller.type.value,
+                  action: "edit",
+                  todo: todos[index],
+                  index: index,
+                ));
+          },
+          title: Text(
+            todos[index].title,
+            textAlign: TextAlign.right,
+            textDirection: TextDirection.rtl,
+            style: todos[index].isDone
+            ? const TextStyle(
+            decoration: TextDecoration.lineThrough, // Cross out text
+          ) : const TextStyle(),
+          ),
+          subtitle: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "${todos[index].note}",
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                textDirection: TextDirection.rtl,
+              ),
+              Text(
+                "${todos[index].date} - ${todos[index].time}",
+                textAlign: TextAlign.right,
+                textDirection: TextDirection.rtl,
+              )
+            ],
+          ),
+          trailing: IconButton(
+            icon: const Icon(
+              Icons.delete,
+              color: Colors.red,
+            ),
+            onPressed: () {
+              print("delete item at : ${todos[index].toString()}");
+              controller.deleteById(todos[index].uuid);
+            },
+          ),
+        )
+ */

@@ -9,6 +9,7 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
   FlutterLocalNotificationsPlugin();
+
   Random random = Random();
 
   Future<void> showNotification(String date,String title,String body) async {

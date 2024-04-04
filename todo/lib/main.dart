@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:todo/model.dart';
+import 'core/controllers/db_controller.dart';
 import 'home_page.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
@@ -31,11 +32,12 @@ Future<void> main() async {
   Hive.registerAdapter(TodoAdapter());
   //noftioncation init
   await init();
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+   MyApp({super.key});
+   DBController controller = Get.put(DBController());
 
   @override
   Widget build(BuildContext context) {
